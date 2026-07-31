@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/tests/">
+    <Project Path="tests/RuntimePackager.Tests/RuntimePackager.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/RuntimePackager/RuntimePackager.csproj" />
+  </Folder>
+</Solution>

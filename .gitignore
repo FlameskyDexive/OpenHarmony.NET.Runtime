@@ -1,0 +1,5 @@
+/tools/RuntimePackager/bin/
+/tools/RuntimePackager/obj/
+/tests/**/bin/
+/tests/**/obj/
+/releases/

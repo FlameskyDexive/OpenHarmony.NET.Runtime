@@ -1,5 +1,17 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 
+	<PropertyGroup>
+		<OpenHarmonyRuntimeRepoRoot>$(MSBuildThisFileDirectory)</OpenHarmonyRuntimeRepoRoot>
+		<OpenHarmonyApiLevel Condition="'$(OpenHarmonyApiLevel)' == ''">15</OpenHarmonyApiLevel>
+		<OpenHarmonyRuntimeVersion Condition="'$(OpenHarmonyRuntimeVersion)' == ''">10.0.10-ohos.1</OpenHarmonyRuntimeVersion>
+		<OpenHarmonyRuntimePackageRoot Condition="'$(OpenHarmonyRuntimePackageRoot)' == ''">$(OpenHarmonyRuntimeRepoRoot)releases\$(OpenHarmonyRuntimeVersion)</OpenHarmonyRuntimePackageRoot>
+	</PropertyGroup>
+
+	<Target Name="ValidateOpenHarmonyRuntimeProperties" BeforeTargets="PrepareForBuild" Condition="'$(OpenHarmonyTarget)' == 'true'">
+		<Error Condition="'$(OpenHarmonyApiLevel)' != '15' And '$(OpenHarmonyApiLevel)' != '18' And '$(OpenHarmonyApiLevel)' != '20' And '$(OpenHarmonyApiLevel)' != '23' And '$(OpenHarmonyApiLevel)' != '26'"
+			Text="OpenHarmonyApiLevel must be one of 15, 18, 20, 23, or 26. Received '$(OpenHarmonyApiLevel)'." />
+	</Target>
+
 
 	<Import Project="runtime.linux-musl-arm64.microsoft.dotnet.ilcompiler/runtime.arm64.targets" Condition="$(RuntimeIdentifier.Contains('linux-musl-arm64'))" />
 	<Import Project="runtime.linux-musl-x64.microsoft.dotnet.ilcompiler/runtime.x64.targets" Condition="$(RuntimeIdentifier.Contains('linux-musl-x64'))" />

@@ -1,16 +1,29 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 
 	<PropertyGroup>
-		<IlcFrameworkNativePath>$(MSBuildThisFileDirectory)/9.0.0/framework/</IlcFrameworkNativePath>
-		<IlcSdkPath>$(MSBuildThisFileDirectory)/9.0.0/sdk/</IlcSdkPath>
+		<OpenHarmonyArchitecture>arm64</OpenHarmonyArchitecture>
+		<OpenHarmonyLegacyRuntimePackPath>$(OpenHarmonyRuntimeRepoRoot)runtime.linux-musl-arm64.microsoft.dotnet.ilcompiler\9.0.0</OpenHarmonyLegacyRuntimePackPath>
+		<OpenHarmonyRuntimeAbi>arm64-v8a</OpenHarmonyRuntimeAbi>
+		<OpenHarmonyRuntimeApiPath>$(OpenHarmonyRuntimePackageRoot)\api$(OpenHarmonyApiLevel)\$(OpenHarmonyRuntimeAbi)\runtime-pack</OpenHarmonyRuntimeApiPath>
+		<OpenHarmonyRuntimeBaselinePath>$(OpenHarmonyRuntimePackageRoot)\$(OpenHarmonyRuntimeAbi)\runtime-pack</OpenHarmonyRuntimeBaselinePath>
+		<OpenHarmonyRuntimePackPath Condition="'$(OpenHarmonyTarget)' == 'true' And Exists('$(OpenHarmonyRuntimeApiPath)')">$(OpenHarmonyRuntimeApiPath)</OpenHarmonyRuntimePackPath>
+		<OpenHarmonyRuntimePackPath Condition="'$(OpenHarmonyTarget)' == 'true' And !Exists('$(OpenHarmonyRuntimeApiPath)') And Exists('$(OpenHarmonyRuntimeBaselinePath)')">$(OpenHarmonyRuntimeBaselinePath)</OpenHarmonyRuntimePackPath>
+		<OpenHarmonyRuntimePackPath Condition="'$(OpenHarmonyTarget)' != 'true'">$(OpenHarmonyLegacyRuntimePackPath)</OpenHarmonyRuntimePackPath>
+		<IlcFrameworkNativePath>$(OpenHarmonyRuntimePackPath)\framework\</IlcFrameworkNativePath>
+		<IlcSdkPath>$(OpenHarmonyRuntimePackPath)\sdk\</IlcSdkPath>
 	</PropertyGroup>
 
 	<ItemGroup>
-		<NativeSharedLibrary Include="$(MSBuildThisFileDirectory)/9.0.0/native/*" />
+		<NativeSharedLibrary Include="$(OpenHarmonyRuntimePackPath)\native\*" />
 	</ItemGroup>
 
+	<Target Name="ValidateOpenHarmonyArm64RuntimePackage" BeforeTargets="PrepareForBuild" Condition="'$(OpenHarmonyTarget)' == 'true'">
+		<Error Condition="!Exists('$(OpenHarmonyRuntimePackPath)\sdk') Or !Exists('$(OpenHarmonyRuntimePackPath)\framework') Or !Exists('$(OpenHarmonyRuntimePackPath)\native')"
+			Text="OpenHarmony arm64 runtime package was not found for API $(OpenHarmonyApiLevel). Build releases/$(OpenHarmonyRuntimeVersion) with RuntimePackager first." />
+	</Target>
+
 	<Target Name="CopyNativeLibs" BeforeTargets="Publish">
-    	<Copy SourceFiles="@(NativeSharedLibrary)" DestinationFolder="$(PublishDir)"/>
-  	</Target>
+		<Copy SourceFiles="@(NativeSharedLibrary)" DestinationFolder="$(PublishDir)" SkipUnchangedFiles="true" />
+	</Target>
 
 </Project>
