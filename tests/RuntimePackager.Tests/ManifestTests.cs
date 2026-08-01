@@ -6,6 +6,39 @@ namespace RuntimePackager.Tests;
 
 public sealed class ManifestTests
 {
+    private static string RepositoryRoot
+    {
+        get
+        {
+            var directory = new DirectoryInfo(AppContext.BaseDirectory);
+            while (directory is not null)
+            {
+                if (File.Exists(Path.Combine(directory.FullName, "runtime.linux-musl-arm64.microsoft.dotnet.ilcompiler", "runtime.arm64.targets")))
+                {
+                    return directory.FullName;
+                }
+
+                directory = directory.Parent;
+            }
+
+            throw new DirectoryNotFoundException("Could not locate the OpenHarmony.NET.Runtime repository root.");
+        }
+    }
+
+    [Fact]
+    public void NativeAotTargetsConsumeNativeFrameworkLibrariesFromNativeDirectory()
+    {
+        foreach (var target in new[]
+        {
+            Path.Combine(RepositoryRoot, "runtime.linux-musl-arm64.microsoft.dotnet.ilcompiler", "runtime.arm64.targets"),
+            Path.Combine(RepositoryRoot, "runtime.linux-musl-x64.microsoft.dotnet.ilcompiler", "runtime.x64.targets")
+        })
+        {
+            var text = File.ReadAllText(target);
+            Assert.Contains("<IlcFrameworkNativePath>$(OpenHarmonyRuntimePackPath)\\native\\</IlcFrameworkNativePath>", text);
+        }
+    }
+
     [Fact]
     public void PackagesBothArchitecturesWithDeterministicManifest()
     {

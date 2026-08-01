@@ -9,7 +9,7 @@
 		<OpenHarmonyRuntimePackPath Condition="'$(OpenHarmonyTarget)' == 'true' And Exists('$(OpenHarmonyRuntimeApiPath)')">$(OpenHarmonyRuntimeApiPath)</OpenHarmonyRuntimePackPath>
 		<OpenHarmonyRuntimePackPath Condition="'$(OpenHarmonyTarget)' == 'true' And !Exists('$(OpenHarmonyRuntimeApiPath)') And Exists('$(OpenHarmonyRuntimeBaselinePath)')">$(OpenHarmonyRuntimeBaselinePath)</OpenHarmonyRuntimePackPath>
 		<OpenHarmonyRuntimePackPath Condition="'$(OpenHarmonyTarget)' != 'true'">$(OpenHarmonyLegacyRuntimePackPath)</OpenHarmonyRuntimePackPath>
-		<IlcFrameworkNativePath>$(OpenHarmonyRuntimePackPath)\framework\</IlcFrameworkNativePath>
+		<IlcFrameworkNativePath>$(OpenHarmonyRuntimePackPath)\native\</IlcFrameworkNativePath>
 		<IlcSdkPath>$(OpenHarmonyRuntimePackPath)\sdk\</IlcSdkPath>
 	</PropertyGroup>
 
