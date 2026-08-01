@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "version": "10.0.10-ohos.1",
   "runtimeCommit": "a9c01b20cc8aa9ca03955c9f55626bfd517619c9",
-  "bindingsCommit": "a5b13decf052335e2921a45e0dbdddafad1aac56",
+  "bindingsCommit": "2b68d3c1a3b3e1f5f8eabe1cfe0eae6348a55ce3",
   "minimumApi": 15,
   "verifiedApis": [
     15,

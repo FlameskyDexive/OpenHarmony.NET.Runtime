@@ -70,7 +70,7 @@
       "annotationDate": "2026-08-01T00:00:00Z",
       "annotationType": "OTHER",
       "annotator": "Organization: OpenHarmony.NET",
-      "comment": "releaseChannel=preview; api26SdkReleaseType=Beta; bindingsCommit=a5b13decf052335e2921a45e0dbdddafad1aac56"
+      "comment": "releaseChannel=preview; api26SdkReleaseType=Beta; bindingsCommit=2b68d3c1a3b3e1f5f8eabe1cfe0eae6348a55ce3"
     }
   ]
 }
