@@ -122,6 +122,7 @@ public static class RuntimePackagerService
                 Dependencies = Directory.EnumerateFiles(Path.Combine(packageRoot, "native"), "*", SearchOption.AllDirectories)
                     .Select(Path.GetFileName)
                     .Where(name => !string.IsNullOrWhiteSpace(name))
+                    .Distinct(StringComparer.Ordinal)
                     .OrderBy(name => name, StringComparer.Ordinal)
                     .Cast<string>()
                     .ToArray(),

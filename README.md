@@ -51,3 +51,7 @@ dotnet test OpenHarmony.NET.Runtime.slnx
 ```
 
 `schema/runtime-manifest.schema.json` 定义了 manifest 格式；每个文件的 SHA-256 都记录在 manifest 中，便于发布前校验。
+
+可审计的发布 manifest、SPDX 2.3 SBOM、校验和及 preview/stable 策略位于
+`release/`。API26 SDK 仍为 Beta 时只允许 preview/rc；发布还必须提供 arm64
+真机和 x86_64 模拟器验收日志的 SHA-256，详见 `release/README.md`。

@@ -1,0 +1,76 @@
+{
+  "spdxVersion": "SPDX-2.3",
+  "dataLicense": "CC0-1.0",
+  "SPDXID": "SPDXRef-DOCUMENT",
+  "name": "OpenHarmony.NET.Runtime-10.0.10-ohos.1",
+  "documentNamespace": "https://github.com/FlameskyDexive/OpenHarmony.NET.Runtime/releases/10.0.10-ohos.1/spdx",
+  "creationInfo": {
+    "created": "2026-08-01T00:00:00Z",
+    "creators": [
+      "Organization: OpenHarmony.NET",
+      "Tool: OpenHarmony.NET.Runtime RuntimePackager"
+    ]
+  },
+  "documentDescribes": [
+    "SPDXRef-Package-arm64-v8a",
+    "SPDXRef-Package-x86-64"
+  ],
+  "packages": [
+    {
+      "name": "OpenHarmony.NET.Runtime.linux-musl-arm64",
+      "SPDXID": "SPDXRef-Package-arm64-v8a",
+      "versionInfo": "10.0.10-ohos.1",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "7846258c51f8299a724858eb2fd877a131923befe4c31de6a5bc3e397d44df36"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "copyrightText": "NOASSERTION",
+      "comment": "API15; ABI=arm64-v8a; RID=linux-musl-arm64; runtimeCommit=a9c01b20cc8aa9ca03955c9f55626bfd517619c9",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceType": "purl",
+          "referenceLocator": "pkg:generic/OpenHarmony.NET.Runtime.linux-musl-arm64@10.0.10-ohos.1"
+        }
+      ]
+    },
+    {
+      "name": "OpenHarmony.NET.Runtime.linux-musl-x64",
+      "SPDXID": "SPDXRef-Package-x86-64",
+      "versionInfo": "10.0.10-ohos.1",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": false,
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "5e8a96828634e1afacbb015e0c0b546ccee58174f259aa6a285efab6761afb81"
+        }
+      ],
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "copyrightText": "NOASSERTION",
+      "comment": "API15; ABI=x86_64; RID=linux-musl-x64; runtimeCommit=a9c01b20cc8aa9ca03955c9f55626bfd517619c9",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceType": "purl",
+          "referenceLocator": "pkg:generic/OpenHarmony.NET.Runtime.linux-musl-x64@10.0.10-ohos.1"
+        }
+      ]
+    }
+  ],
+  "annotations": [
+    {
+      "annotationDate": "2026-08-01T00:00:00Z",
+      "annotationType": "OTHER",
+      "annotator": "Organization: OpenHarmony.NET",
+      "comment": "releaseChannel=preview; api26SdkReleaseType=Beta; bindingsCommit=a5b13decf052335e2921a45e0dbdddafad1aac56"
+    }
+  ]
+}

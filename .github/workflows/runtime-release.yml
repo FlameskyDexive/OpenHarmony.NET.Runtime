@@ -1,0 +1,116 @@
+name: .NET 10 OpenHarmony runtime release
+
+on:
+  push:
+    branches: [main, openharmony/dotnet10-api26]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      release_channel:
+        description: API26 Beta may only use preview or rc
+        required: true
+        type: choice
+        default: preview
+        options: [preview, rc, stable]
+      arm64_device_evidence_sha256:
+        description: SHA-256 of the arm64 physical-device acceptance log
+        required: true
+        type: string
+      x86_64_emulator_evidence_sha256:
+        description: SHA-256 of the x86_64 emulator acceptance log
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_VERSION: '10.0.x'
+  RUNTIME_VERSION: '10.0.10-ohos.1'
+
+jobs:
+  tests-and-metadata:
+    name: Packager tests and tracked metadata
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+      - name: Test runtime packager
+        shell: pwsh
+        run: dotnet test OpenHarmony.NET.Runtime.slnx --configuration Release --verbosity minimal
+      - name: Verify preview metadata
+        shell: pwsh
+        run: ./tools/verify-release.ps1 -MetadataRoot "release/$env:RUNTIME_VERSION" -Channel preview -Api26ReleaseType Beta
+      - name: Prove that API26 Beta blocks stable release
+        shell: pwsh
+        run: |
+          try {
+            ./tools/verify-release.ps1 -MetadataRoot "release/$env:RUNTIME_VERSION" -Channel stable -Api26ReleaseType Beta
+            throw 'Stable policy unexpectedly accepted the API26 Beta SDK.'
+          }
+          catch {
+            if ($_.Exception.Message -notmatch 'Stable release is blocked') { throw }
+          }
+      - name: Verify source integrity
+        shell: pwsh
+        run: |
+          git diff --check
+          if ((git status --porcelain)) { throw 'Tests changed tracked files.' }
+
+  package:
+    name: Rebuild and verify both runtime packs
+    needs: tests-and-metadata
+    runs-on: [self-hosted, Windows, harmonyos-sdk, runtime-artifacts]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+      - name: Package arm64-v8a and x86_64
+        shell: pwsh
+        run: |
+          $sourceRoot = $env:OPENHARMONY_RUNTIME_SOURCE_ROOT
+          if (-not $sourceRoot -or -not (Test-Path -LiteralPath $sourceRoot)) { throw 'OPENHARMONY_RUNTIME_SOURCE_ROOT must point to verified runtime build artifacts.' }
+          $tracked = Get-Content "release/$env:RUNTIME_VERSION/manifest.json" -Raw | ConvertFrom-Json
+          $outputRoot = Join-Path $env:RUNNER_TEMP 'openharmony-runtime-release'
+          dotnet run --project tools/RuntimePackager/RuntimePackager.csproj --configuration Release -- --source-root "$sourceRoot" --output-root "$outputRoot" --version $env:RUNTIME_VERSION --runtime-commit $tracked.runtimeCommit --bindings-commit $tracked.bindingsCommit --api-levels 15,18,20,23,26 --architectures arm64,x64
+          if ($LASTEXITCODE -ne 0) { throw 'RuntimePackager failed.' }
+          $generatedRoot = Join-Path $outputRoot "releases/$env:RUNTIME_VERSION"
+          ./tools/verify-release.ps1 -MetadataRoot "release/$env:RUNTIME_VERSION" -GeneratedReleaseRoot $generatedRoot -Channel preview -Api26ReleaseType Beta
+          "GENERATED_RELEASE_ROOT=$generatedRoot" >> $env:GITHUB_ENV
+      - uses: actions/upload-artifact@v4
+        with:
+          name: OpenHarmony.NET.Runtime-${{ env.RUNTIME_VERSION }}-preview
+          path: ${{ runner.temp }}/openharmony-runtime-release/releases/${{ env.RUNTIME_VERSION }}
+
+  release-policy:
+    name: Device and SDK release gates
+    if: github.event_name == 'workflow_dispatch'
+    needs: package
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Require both runtime evidence digests
+        shell: pwsh
+        env:
+          ARM64_EVIDENCE: ${{ inputs.arm64_device_evidence_sha256 }}
+          X64_EVIDENCE: ${{ inputs.x86_64_emulator_evidence_sha256 }}
+          RELEASE_CHANNEL: ${{ inputs.release_channel }}
+        run: |
+          if ($env:ARM64_EVIDENCE -notmatch '^[0-9a-fA-F]{64}$') { throw 'arm64 physical-device evidence SHA-256 is required.' }
+          if ($env:X64_EVIDENCE -notmatch '^[0-9a-fA-F]{64}$') { throw 'x86_64 emulator evidence SHA-256 is required.' }
+          ./tools/verify-release.ps1 -MetadataRoot "release/$env:RUNTIME_VERSION" -Channel $env:RELEASE_CHANNEL -Api26ReleaseType Beta
+      - name: Record release gate summary
+        shell: pwsh
+        env:
+          ARM64_EVIDENCE: ${{ inputs.arm64_device_evidence_sha256 }}
+          X64_EVIDENCE: ${{ inputs.x86_64_emulator_evidence_sha256 }}
+          RELEASE_CHANNEL: ${{ inputs.release_channel }}
+        run: |
+          "## $env:RUNTIME_VERSION $env:RELEASE_CHANNEL gate" >> $env:GITHUB_STEP_SUMMARY
+          "arm64 device evidence: ``$env:ARM64_EVIDENCE``" >> $env:GITHUB_STEP_SUMMARY
+          "x86_64 emulator evidence: ``$env:X64_EVIDENCE``" >> $env:GITHUB_STEP_SUMMARY
