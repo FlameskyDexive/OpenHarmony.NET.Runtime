@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "version": "10.0.10-ohos.1",
-  "runtimeCommit": "a9c01b20cc8aa9ca03955c9f55626bfd517619c9",
+  "runtimeCommit": "76bde136efafd0e193234e38d169752b93e3bce6",
   "bindingsCommit": "2b68d3c1a3b3e1f5f8eabe1cfe0eae6348a55ce3",
   "minimumApi": 15,
   "verifiedApis": [
@@ -29,7 +29,7 @@
       "sdk": {
         "folder": "15",
         "packageVersion": "5.0.3.135",
-        "sha256": "4ab8d3af918af6c83207d0dcf427b48c0a16fdbd7cafe7cfc95c47fd41aa9087"
+        "sha256": "120aa4871c0ad925a8b5abe9a85beeb48a1eb70a98b2a43160f2445da08bd86d"
       },
       "dependencies": [
         "ICU-LICENSE.txt",
@@ -2347,12 +2347,12 @@
         {
           "path": "native/libSystem.Globalization.Native.so",
           "size": 63472,
-          "sha256": "6dd8a27ff3bc575e4fe0ce9796be62bfdf64b10dce52c13119a95f9337e8682c"
+          "sha256": "f076a57b6e076b94786c954310eacd9288db4372ee443fd7715a9424a8f6707b"
         },
         {
           "path": "native/libSystem.Globalization.Native.so.dbg",
           "size": 177320,
-          "sha256": "9a159f9b67aba3407a9e1584aead4381d3a2ebcca6d7806e3615a5afb908ffd5"
+          "sha256": "4ad8f04e0929a0c81fcc3a41d9595ad716bb476d71d7496f5b434d6d9978524a"
         },
         {
           "path": "native/libSystem.IO.Compression.Native.a",
@@ -2362,12 +2362,12 @@
         {
           "path": "native/libSystem.IO.Compression.Native.so",
           "size": 929608,
-          "sha256": "fbfee32ee1a21c0f6c1940bdcefe2a1b9f580fe536ed26f853213466fc6540fb"
+          "sha256": "bdd38e1bcc209c76eb883e02fa8a21d7f9cccb05460f71691614c8e7c880c841"
         },
         {
           "path": "native/libSystem.IO.Compression.Native.so.dbg",
           "size": 1535672,
-          "sha256": "13c7ffd0dca339a76db98132777a20878a70a10e14dee43be24b22e4e42a8cd0"
+          "sha256": "81d07488fabd4245709f501969f7e0fcfbe8e5ae6ea230624b996c2a8128e929"
         },
         {
           "path": "native/libSystem.IO.Ports.Native.a",
@@ -2377,12 +2377,12 @@
         {
           "path": "native/libSystem.IO.Ports.Native.so",
           "size": 14592,
-          "sha256": "0b639386ea1a1a53fd4418a27ea297d9f0cf268f7fdcb4c1d29c4b81cf60451a"
+          "sha256": "fda783dd15b565dc579d42671fae4d92c1e457bf8ec87f8874148978437e2c48"
         },
         {
           "path": "native/libSystem.IO.Ports.Native.so.dbg",
           "size": 38320,
-          "sha256": "65661366c5be2105efb4f300f8cb81d610193d8ba094f5ded7c9c8fa8fe473ae"
+          "sha256": "d1543149e64157f48e7b71f91677adfd298224acd2b55c4586ab2c278fab98dd"
         },
         {
           "path": "native/libSystem.Native.a",
@@ -2392,27 +2392,27 @@
         {
           "path": "native/libSystem.Native.so",
           "size": 95936,
-          "sha256": "1fdb1ab055a4b8adb1cb1971df33a18cba8f6bbff5da091e1bb8201243c2b5c3"
+          "sha256": "f6f83a2bc42c02775dce7ca389c288ca34ab2ede309012e3b6135106b679ec14"
         },
         {
           "path": "native/libSystem.Native.so.dbg",
           "size": 250792,
-          "sha256": "3344fef61bdf7ca9fe6939b015827c8ec975eb9a834633519385eb5ab534c117"
+          "sha256": "57a6e2db6d3f5defcc9db576fe9307565814b210d6ec0cf4b43f0eebabb4dafb"
         },
         {
           "path": "native/libSystem.Security.Cryptography.Native.OpenSsl.a",
           "size": 1443730,
-          "sha256": "e1ed0656dde46d644d6cc995453943a16d8e0d8bfe5c71229a0d7dcdd324e56f"
+          "sha256": "6860be51e2dbf0c247049e0528e4c39af790f7988391ddae1a95e8b17823644f"
         },
         {
           "path": "native/libSystem.Security.Cryptography.Native.OpenSsl.so",
           "size": 216352,
-          "sha256": "b1bf007e41a9c7bddf96a57242b6031cff512d284e22bec1944cb2f46788a686"
+          "sha256": "e54f3e240b250678aa6617a6615ed36c854429fd1b431a2e5a6781dd46433be9"
         },
         {
           "path": "native/libSystem.Security.Cryptography.Native.OpenSsl.so.dbg",
           "size": 445288,
-          "sha256": "00e5c652337b708a5d7dfb4c6b12b8e31f4d370df353ec2597cb8ef098e825d4"
+          "sha256": "d6fb90e2970b4517b6e77712a7c9564dbf24a2d77565a665f1ba4595e75a8ff5"
         },
         {
           "path": "native/libbrotlicommon.a",
@@ -2506,8 +2506,8 @@
         },
         {
           "path": "provenance/runtime-build-provenance.json",
-          "size": 542,
-          "sha256": "83a1f42e23d8b9b5cbf35c49f97a5b5cd2e1c191239e3a4b37f5d8076de3a599"
+          "size": 578,
+          "sha256": "2dbb7430f27e987b3e4588ea3b153af51ae44abff7205bb30c5f13811208fd41"
         },
         {
           "path": "sdk/System.Private.CoreLib.dll",
@@ -2571,13 +2571,13 @@
         },
         {
           "path": "sdk/libRuntime.ServerGC.a",
-          "size": 11336592,
-          "sha256": "20360f4f1849233f72a9fbfa189dfddd96217de332e228dbf1b5dd6637edc96a"
+          "size": 11579178,
+          "sha256": "bc6b20d414ef435481609e31f4bbd13cb5ab8a32020db973b14bd07bce35630f"
         },
         {
           "path": "sdk/libRuntime.WorkstationGC.a",
-          "size": 8181406,
-          "sha256": "8f873a67323c5f935e141a4b5a8255d5d6720ec391625f939a10382d66a80abd"
+          "size": 8418786,
+          "sha256": "7e2ec3fcc3b5ec073465d79802a0101965b7257ca4e3f68d640f70d2e13a475c"
         },
         {
           "path": "sdk/libaotminipal.a",
@@ -2630,7 +2630,7 @@
       "sdk": {
         "folder": "15",
         "packageVersion": "5.0.3.135",
-        "sha256": "c036cecda96d2b84a79ad82ed6c16780ad413337ecfdf8b4ff8b331cd3b7d895"
+        "sha256": "f7e6d1758e35051acc79e4da02e644e2df4df71fe9edd22fe79125e8e3308a32"
       },
       "dependencies": [
         "ICU-LICENSE.txt",
@@ -4948,12 +4948,12 @@
         {
           "path": "native/libSystem.Globalization.Native.so",
           "size": 62904,
-          "sha256": "1297c762ea59644bbb073469d2f726c68f8510208e494b798a2b2888b39a688d"
+          "sha256": "c9c5c99b8f40635a2feea70cd84ff59aca8636ab09cb78ce550e46eb3005d698"
         },
         {
           "path": "native/libSystem.Globalization.Native.so.dbg",
           "size": 165544,
-          "sha256": "add3dad318f43075cb92568bf171c3dd082cb282d52bc4588bce15f6166bf1e9"
+          "sha256": "6e327160a9703e658e910de14b172d07ca2f79486977ab4fdfcd49e205d2e04b"
         },
         {
           "path": "native/libSystem.IO.Compression.Native.a",
@@ -4963,12 +4963,12 @@
         {
           "path": "native/libSystem.IO.Compression.Native.so",
           "size": 1069648,
-          "sha256": "397dac6cd909819615db3a84ee85f59c3adcf6c81200af1b876c64e64a64edd8"
+          "sha256": "7b806fed217abef4bf080f3860cdf652251edef914e1c5c216fa9a48064f21f4"
         },
         {
           "path": "native/libSystem.IO.Compression.Native.so.dbg",
           "size": 1812696,
-          "sha256": "9e328ae38e4d34b68f00728f5ea34b5f80a55e51be743e14c0287e6c407be475"
+          "sha256": "d058e337913330005b0d1ccd26be1e1ab09d5f7c68fc1eb472cba3b89e3b7e3d"
         },
         {
           "path": "native/libSystem.IO.Ports.Native.a",
@@ -4978,12 +4978,12 @@
         {
           "path": "native/libSystem.IO.Ports.Native.so",
           "size": 14688,
-          "sha256": "8365dbfbfd410a9a06e533eaab586a7cfae1dd5efa539594bf911e8bcb3255a5"
+          "sha256": "6aab99907efa1e4aaf509ba81dead2ba45e28ff5acd68d5b4b753c3f07efe4f8"
         },
         {
           "path": "native/libSystem.IO.Ports.Native.so.dbg",
           "size": 33560,
-          "sha256": "7c4e3e6b5450f64c79ebcaecb9a2b3f78de10c67f951fe73a2151f696926e3d6"
+          "sha256": "5d315266d4fb8ce5cfd4161e47c727a4e53db8d62d1091103d5f0f028ff3472f"
         },
         {
           "path": "native/libSystem.Native.a",
@@ -4993,27 +4993,27 @@
         {
           "path": "native/libSystem.Native.so",
           "size": 97248,
-          "sha256": "ff64301fded8bfa38b8d1f32a7b8e603e0ca5a19825c06dada22046cec00cae5"
+          "sha256": "6ce8e2216865129264920c7cd09a1061a4c522d34316b80e136e54b5bb52c253"
         },
         {
           "path": "native/libSystem.Native.so.dbg",
           "size": 238144,
-          "sha256": "6ec14bd359b7f1830e8c3975f188e6432b4794cd8eede5dfa74e1c6fa54604b4"
+          "sha256": "fb107b6d01507de9805ab7564aacdd071826b16ae429ab7b1c75dccf4b39a737"
         },
         {
           "path": "native/libSystem.Security.Cryptography.Native.OpenSsl.a",
           "size": 1334154,
-          "sha256": "dcd90e4d4fc7b18186e4fdb84c240ca6946c8ced8f688d78865fcc67d8eb4824"
+          "sha256": "a7e65c40d381f5afaf33f183db5a777749995f3711fb6e0ee1c3196d63a48d32"
         },
         {
           "path": "native/libSystem.Security.Cryptography.Native.OpenSsl.so",
           "size": 190472,
-          "sha256": "8ab0d117141b7e46437af9d19f903e272b550c166451ba9e70fb0d27dc50759e"
+          "sha256": "660120a48bb07060a753229cea44aa3f25a9d2168b14937650547feff6af101c"
         },
         {
           "path": "native/libSystem.Security.Cryptography.Native.OpenSsl.so.dbg",
           "size": 398520,
-          "sha256": "5ce4796e8f4e5026d39d4d5901c0ed72dd9afbc2ca6baaec2fa0c50aaca2804a"
+          "sha256": "a50ef02a9283d78fa98896153abeec1ec4231d90a2f41929613e4c7d12fb39aa"
         },
         {
           "path": "native/libbrotlicommon.a",
@@ -5107,8 +5107,8 @@
         },
         {
           "path": "provenance/runtime-build-provenance.json",
-          "size": 536,
-          "sha256": "f19358abcbde91d70e7ff3d9cca927d3874e08e058188da405f28a08368e794f"
+          "size": 572,
+          "sha256": "e18f6100d5ed9e04a3eb10d1c7581d15caf282e7088e8cd577bfb9cff5270780"
         },
         {
           "path": "sdk/System.Private.CoreLib.dll",
@@ -5172,8 +5172,8 @@
         },
         {
           "path": "sdk/libRuntime.ServerGC.a",
-          "size": 11112334,
-          "sha256": "731a6015b8f8ca1e6fb030f058069baec6a2164185b51ebf92bb1403699d0356"
+          "size": 11354640,
+          "sha256": "5b67f10d8a147c9d20efea45899cbc9952ed1e88dfc88caa0ee492ab37aa7471"
         },
         {
           "path": "sdk/libRuntime.VxsortDisabled.a",
@@ -5187,8 +5187,8 @@
         },
         {
           "path": "sdk/libRuntime.WorkstationGC.a",
-          "size": 8008146,
-          "sha256": "570cc07c30d6879bfe95f9cecfe06ea8b2dd2098c8c1d07e806263e9d39ceb75"
+          "size": 8245310,
+          "sha256": "e93a873333f24b3863f4da06c7fc25b4ea3b2e77b7504fcb434f2ff4e025c370"
         },
         {
           "path": "sdk/libaotminipal.a",
@@ -5236,6 +5236,6 @@
   "sbom": {
     "format": "CycloneDX 1.5 JSON",
     "path": "sbom.json",
-    "sha256": "1b8cfd929c0562f684a5046767ca44de24364fe7cb38bf2f9964f64487edd5a5"
+    "sha256": "c49d35cbeb77ee25194482550f5868febe7fcda24093aac91a5e2372d3ae2269"
   }
 }

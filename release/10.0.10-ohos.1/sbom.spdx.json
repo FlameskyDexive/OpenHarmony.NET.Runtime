@@ -25,13 +25,13 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "7846258c51f8299a724858eb2fd877a131923befe4c31de6a5bc3e397d44df36"
+          "checksumValue": "945b46035bb54aa42c0bf54e5d9ad8f94c2bd1a4e788f9872bf1ad7aaf82bbb6"
         }
       ],
       "licenseConcluded": "NOASSERTION",
       "licenseDeclared": "NOASSERTION",
       "copyrightText": "NOASSERTION",
-      "comment": "API15; ABI=arm64-v8a; RID=linux-musl-arm64; runtimeCommit=a9c01b20cc8aa9ca03955c9f55626bfd517619c9",
+      "comment": "API15; ABI=arm64-v8a; RID=linux-musl-arm64; runtimeCommit=76bde136efafd0e193234e38d169752b93e3bce6",
       "externalRefs": [
         {
           "referenceCategory": "PACKAGE-MANAGER",
@@ -49,13 +49,13 @@
       "checksums": [
         {
           "algorithm": "SHA256",
-          "checksumValue": "5e8a96828634e1afacbb015e0c0b546ccee58174f259aa6a285efab6761afb81"
+          "checksumValue": "ff06fc768183830628944c4294ec4025fb15b7fea773a2c5326d18bfa7b97b84"
         }
       ],
       "licenseConcluded": "NOASSERTION",
       "licenseDeclared": "NOASSERTION",
       "copyrightText": "NOASSERTION",
-      "comment": "API15; ABI=x86_64; RID=linux-musl-x64; runtimeCommit=a9c01b20cc8aa9ca03955c9f55626bfd517619c9",
+      "comment": "API15; ABI=x86_64; RID=linux-musl-x64; runtimeCommit=76bde136efafd0e193234e38d169752b93e3bce6",
       "externalRefs": [
         {
           "referenceCategory": "PACKAGE-MANAGER",
