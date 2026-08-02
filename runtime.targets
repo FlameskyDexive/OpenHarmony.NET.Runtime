@@ -3,13 +3,14 @@
 	<PropertyGroup>
 		<OpenHarmonyRuntimeRepoRoot>$(MSBuildThisFileDirectory)</OpenHarmonyRuntimeRepoRoot>
 		<OpenHarmonyApiLevel Condition="'$(OpenHarmonyApiLevel)' == ''">15</OpenHarmonyApiLevel>
-		<OpenHarmonyRuntimeVersion Condition="'$(OpenHarmonyRuntimeVersion)' == ''">10.0.10-ohos.1</OpenHarmonyRuntimeVersion>
+		<OpenHarmonyRuntimeVersion Condition="'$(OpenHarmonyRuntimeVersion)' == ''">10.0.10-ohos.2-preview.1</OpenHarmonyRuntimeVersion>
 		<OpenHarmonyRuntimePackageRoot Condition="'$(OpenHarmonyRuntimePackageRoot)' == ''">$(OpenHarmonyRuntimeRepoRoot)releases\$(OpenHarmonyRuntimeVersion)</OpenHarmonyRuntimePackageRoot>
 	</PropertyGroup>
 
 	<Target Name="ValidateOpenHarmonyRuntimeProperties" BeforeTargets="PrepareForBuild" Condition="'$(OpenHarmonyTarget)' == 'true'">
-		<Error Condition="'$(OpenHarmonyApiLevel)' != '15' And '$(OpenHarmonyApiLevel)' != '18' And '$(OpenHarmonyApiLevel)' != '20' And '$(OpenHarmonyApiLevel)' != '23' And '$(OpenHarmonyApiLevel)' != '26'"
-			Text="OpenHarmonyApiLevel must be one of 15, 18, 20, 23, or 26. Received '$(OpenHarmonyApiLevel)'." />
+		<Error Condition="'$(OpenHarmonyApiLevel)' == '25'" Text="API 25 is intentionally unsupported because no compatible SDK/image is available." />
+		<Error Condition="'$(OpenHarmonyApiLevel)' != '13' And '$(OpenHarmonyApiLevel)' != '14' And '$(OpenHarmonyApiLevel)' != '15' And '$(OpenHarmonyApiLevel)' != '16' And '$(OpenHarmonyApiLevel)' != '17' And '$(OpenHarmonyApiLevel)' != '18' And '$(OpenHarmonyApiLevel)' != '19' And '$(OpenHarmonyApiLevel)' != '20' And '$(OpenHarmonyApiLevel)' != '21' And '$(OpenHarmonyApiLevel)' != '22' And '$(OpenHarmonyApiLevel)' != '23' And '$(OpenHarmonyApiLevel)' != '24' And '$(OpenHarmonyApiLevel)' != '26'"
+			Text="OpenHarmonyApiLevel must be one of 13 through 24, or 26. Received '$(OpenHarmonyApiLevel)'." />
 	</Target>
 
 

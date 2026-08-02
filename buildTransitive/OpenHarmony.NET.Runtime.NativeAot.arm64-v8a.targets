@@ -1,0 +1,25 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Condition="'$(OpenHarmonyTarget)' == 'true'">
+    <OpenHarmonyRuntimePackageAbi>arm64-v8a</OpenHarmonyRuntimePackageAbi>
+    <OpenHarmonyRuntimeManifestPath>$(MSBuildThisFileDirectory)..\manifest.json</OpenHarmonyRuntimeManifestPath>
+    <OpenHarmonyRuntimePackPath>$(MSBuildThisFileDirectory)..\runtime-pack</OpenHarmonyRuntimePackPath>
+    <IlcFrameworkNativePath>$(OpenHarmonyRuntimePackPath)\native\</IlcFrameworkNativePath>
+    <IlcSdkPath>$(OpenHarmonyRuntimePackPath)\sdk\</IlcSdkPath>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(OpenHarmonyTarget)' == 'true'">
+    <NativeSharedLibrary Include="$(OpenHarmonyRuntimePackPath)\native\*" />
+  </ItemGroup>
+  <Target Name="ValidateOpenHarmonyRuntimeManifestArm64" BeforeTargets="PrepareForBuild" Condition="'$(OpenHarmonyTarget)' == 'true'">
+    <Error Condition="!Exists('$(OpenHarmonyRuntimeManifestPath)')" Text="OpenHarmony runtime manifest was not found." />
+    <PropertyGroup>
+      <_OpenHarmonyRuntimeManifest>$([System.IO.File]::ReadAllText('$(OpenHarmonyRuntimeManifestPath)'))</_OpenHarmonyRuntimeManifest>
+    </PropertyGroup>
+    <Error Condition="$(_OpenHarmonyRuntimeManifest.Contains('&quot;schemaVersion&quot;: 2')) != 'true'" Text="OpenHarmony runtime manifest schemaVersion must be 2." />
+    <Error Condition="$(_OpenHarmonyRuntimeManifest.Contains('&quot;buildApi&quot;: $(OpenHarmonyApiLevel)')) != 'true'" Text="OpenHarmony runtime manifest lacks API $(OpenHarmonyApiLevel)." />
+    <Error Condition="$(_OpenHarmonyRuntimeManifest.Contains('&quot;sourceDirty&quot;: true')) == 'true'" Text="OpenHarmony runtime manifest contains dirty provenance." />
+    <Error Condition="!Exists('$(OpenHarmonyRuntimePackPath)\sdk') or !Exists('$(OpenHarmonyRuntimePackPath)\framework') or !Exists('$(OpenHarmonyRuntimePackPath)\native')" Text="OpenHarmony arm64-v8a runtime pack is incomplete." />
+  </Target>
+  <Target Name="CopyOpenHarmonyRuntimeNativeLibrariesArm64" BeforeTargets="Publish" Condition="'$(OpenHarmonyTarget)' == 'true'">
+    <Copy SourceFiles="@(NativeSharedLibrary)" DestinationFolder="$(PublishDir)" SkipUnchangedFiles="true" />
+  </Target>
+</Project>

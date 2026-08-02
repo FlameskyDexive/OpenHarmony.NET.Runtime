@@ -2,4 +2,6 @@
 /tools/RuntimePackager/obj/
 /tests/**/bin/
 /tests/**/obj/
+/pack/bin/
+/pack/obj/
 /releases/

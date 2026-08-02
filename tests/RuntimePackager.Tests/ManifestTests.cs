@@ -37,6 +37,25 @@ public sealed class ManifestTests
         {
             var text = File.ReadAllText(target);
             Assert.Contains("<IlcFrameworkNativePath>$(OpenHarmonyRuntimePackPath)\\native\\</IlcFrameworkNativePath>", text);
+            Assert.Contains("Condition=\"'$(OpenHarmonyTarget)' != 'true'\"", text);
+        }
+    }
+
+    [Fact]
+    public void NugetRecipeCarriesManifestRuntimePackAndBuildTransitiveValidation()
+    {
+        var recipe = File.ReadAllText(Path.Combine(RepositoryRoot, "pack", "OpenHarmony.NET.Runtime.NativeAot.csproj"));
+        Assert.Contains("PackagePath=\"runtime-pack\"", recipe);
+        Assert.Contains("manifest.json", recipe);
+        Assert.Contains("PackagePath=\"buildTransitive\"", recipe);
+
+        foreach (var abi in new[] { "arm64-v8a", "x86_64" })
+        {
+            var targets = File.ReadAllText(Path.Combine(RepositoryRoot, "buildTransitive", $"OpenHarmony.NET.Runtime.NativeAot.{abi}.targets"));
+            Assert.Contains("BeforeTargets=\"PrepareForBuild\"", targets);
+            Assert.Contains("schemaVersion&quot;: 2", targets);
+            Assert.Contains("sourceDirty&quot;: true", targets);
+            Assert.DoesNotContain("9.0.0", targets);
         }
     }
 
@@ -54,7 +73,7 @@ public sealed class ManifestTests
             var secondText = File.ReadAllText(Path.Combine(output, "releases", options.Version, "manifest.json"));
 
             Assert.Equal(new[] { "arm64", "x64" }, first.Architectures);
-            Assert.Equal(new[] { 15, 18, 20, 23, 26 }, first.VerifiedApis);
+            Assert.Equal(new[] { 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 26 }, first.VerifiedApis);
             Assert.Equal(2, first.Packages.Count);
             Assert.Equal(firstText, secondText);
             Assert.Contains(first.Packages.SelectMany(package => package.Files), file => file.Path == "sdk/libaot.a");
@@ -71,13 +90,74 @@ public sealed class ManifestTests
     }
 
     [Fact]
+    public void ManifestV2MapsEverySupportedApiToTheApi13Baseline()
+    {
+        var root = CreateFixture();
+        try
+        {
+            var options = Options(root, Path.Combine(root, "out")) with
+            {
+                ApiLevels = new[] { 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 26 }
+            };
+
+            var manifest = RuntimePackagerService.Package(options);
+
+            Assert.Equal(2, manifest.SchemaVersion);
+            Assert.Equal(13, manifest.RuntimeBaselineApi);
+            Assert.Equal(options.ApiLevels, manifest.SupportedApis);
+            Assert.Equal(26, manifest.CompatibilityEntries.Count);
+            Assert.Equal("alias", manifest.Resolve(14, "x86_64").CompatibilityKind);
+            Assert.Equal(13, manifest.Resolve(14, "x86_64").RuntimeApi);
+            Assert.Throws<ArgumentOutOfRangeException>(() => manifest.Resolve(25, "x86_64"));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
     public void RejectsUnsupportedApi()
     {
         var root = CreateFixture();
         try
         {
-            var options = Options(root, Path.Combine(root, "out")) with { ApiLevels = new[] { 14 } };
+            var options = Options(root, Path.Combine(root, "out")) with { ApiLevels = new[] { 25 } };
             Assert.Throws<ArgumentException>(() => RuntimePackagerService.Package(options));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void RejectsDirtyRuntimeProvenance()
+    {
+        var root = CreateFixture();
+        try
+        {
+            var provenance = Directory.GetFiles(root, "runtime-build-provenance.json", SearchOption.AllDirectories)[0];
+            File.WriteAllText(provenance, "{\"buildApi\":13,\"sourceDirty\":true,\"sdkManifestSha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}");
+
+            Assert.Throws<InvalidDataException>(() =>
+                RuntimePackagerService.Package(Options(root, Path.Combine(root, "out"))));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void RejectsSdkManifestHashThatDoesNotMatchCatalog()
+    {
+        var root = CreateFixture();
+        try
+        {
+            var options = Options(root, Path.Combine(root, "out"));
+            File.WriteAllText(options.SdkCatalogPath!, "{\"packages\":[{\"apiLevel\":13,\"manifestSha256\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"}]}");
+            Assert.Throws<InvalidDataException>(() => RuntimePackagerService.Package(options));
         }
         finally
         {
@@ -88,16 +168,18 @@ public sealed class ManifestTests
     [Fact]
     public void TrackedReleaseMetadataCoversBothAbisAndHasValidChecksums()
     {
-        var releaseRoot = Path.Combine(RepositoryRoot, "release", "10.0.10-ohos.1");
+        var releaseRoot = Path.Combine(RepositoryRoot, "release", "10.0.10-ohos.2-preview.1");
         var manifestPath = Path.Combine(releaseRoot, "manifest.json");
         var spdxPath = Path.Combine(releaseRoot, "sbom.spdx.json");
         var sumsPath = Path.Combine(releaseRoot, "SHA256SUMS");
 
         using var manifest = JsonDocument.Parse(File.ReadAllText(manifestPath));
         var root = manifest.RootElement;
-        Assert.Equal("10.0.10-ohos.1", root.GetProperty("version").GetString());
-        Assert.Equal(15, root.GetProperty("minimumApi").GetInt32());
-        Assert.Equal(new[] { 15, 18, 20, 23, 26 }, root.GetProperty("verifiedApis").EnumerateArray().Select(value => value.GetInt32()));
+        Assert.Equal(2, root.GetProperty("schemaVersion").GetInt32());
+        Assert.Equal("10.0.10-ohos.2-preview.1", root.GetProperty("version").GetString());
+        Assert.Equal(13, root.GetProperty("runtimeBaselineApi").GetInt32());
+        Assert.Equal(new[] { 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 26 }, root.GetProperty("supportedApis").EnumerateArray().Select(value => value.GetInt32()));
+        Assert.Equal(26, root.GetProperty("compatibilityEntries").GetArrayLength());
         Assert.Equal(new[] { "arm64-v8a", "x86_64" }, root.GetProperty("packages").EnumerateArray().Select(value => value.GetProperty("abi").GetString()));
         Assert.All(root.GetProperty("packages").EnumerateArray(), package =>
         {
@@ -120,11 +202,16 @@ public sealed class ManifestTests
         Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))).ToLowerInvariant();
 
     private static RuntimePackagerOptions Options(string source, string output) => new(
-        source, output, "10.0.10-ohos.test", "runtime-sha", "bindings-sha", new[] { 15, 18, 20, 23, 26 }, "Release", new[] { "arm64", "x64" });
+        source, output, "10.0.10-ohos.test", "runtime-sha", "bindings-sha", new[] { 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 26 }, "Release", new[] { "arm64", "x64" })
+    {
+        SdkCatalogPath = Path.Combine(source, "sdk-catalog.json")
+    };
 
     private static string CreateFixture()
     {
         var root = Path.Combine(Path.GetTempPath(), "openharmony-runtime-packager-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        File.WriteAllText(root + Path.DirectorySeparatorChar + "sdk-catalog.json", "{\"packages\":[{\"apiLevel\":13,\"manifestSha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}]}");
         foreach (var architecture in new[] { "arm64", "x64" })
         {
             var coreclr = Path.Combine(root, "artifacts", "bin", "coreclr", $"openharmony.{architecture}.Release");
@@ -139,7 +226,9 @@ public sealed class ManifestTests
             File.WriteAllText(Path.Combine(runtime, "native", "libc++_shared.so"), architecture);
             File.WriteAllText(Path.Combine(runtime, "native", "first", "libduplicate.so"), architecture);
             File.WriteAllText(Path.Combine(runtime, "native", "second", "libduplicate.so"), architecture);
-            File.WriteAllText(Path.Combine(coreclr, "runtime-build-provenance.json"), "{}");
+            File.WriteAllText(
+                Path.Combine(coreclr, "runtime-build-provenance.json"),
+                "{\"buildApi\":13,\"sourceDirty\":false,\"sdkManifestSha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}");
         }
         return root;
     }

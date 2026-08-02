@@ -1,0 +1,4 @@
+5ad9206e946719cdd1cd76bc7e98401699336eb5d589768f098f7c28f4b22c05  manifest.json
+518c6e409a4940ebb1abbf5fe7d1acb9cead1d8f389440e1c444ce8451f30343  sbom.spdx.json
+4a61f98361d010e90e807fd882a5c70d9932b9b277dcc47b04484f2a9eee944d  OpenHarmony.NET.Runtime.NativeAot.arm64-v8a.10.0.10-ohos.2-preview.1.nupkg
+dcfc093e518c08583e448176cd21a1c1fd468e7059f35ed7dc25f5e106668521  OpenHarmony.NET.Runtime.NativeAot.x86_64.10.0.10-ohos.2-preview.1.nupkg

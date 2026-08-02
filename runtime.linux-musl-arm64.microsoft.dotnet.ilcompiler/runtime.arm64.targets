@@ -4,10 +4,8 @@
 		<OpenHarmonyArchitecture>arm64</OpenHarmonyArchitecture>
 		<OpenHarmonyLegacyRuntimePackPath>$(OpenHarmonyRuntimeRepoRoot)runtime.linux-musl-arm64.microsoft.dotnet.ilcompiler\9.0.0</OpenHarmonyLegacyRuntimePackPath>
 		<OpenHarmonyRuntimeAbi>arm64-v8a</OpenHarmonyRuntimeAbi>
-		<OpenHarmonyRuntimeApiPath>$(OpenHarmonyRuntimePackageRoot)\api$(OpenHarmonyApiLevel)\$(OpenHarmonyRuntimeAbi)\runtime-pack</OpenHarmonyRuntimeApiPath>
-		<OpenHarmonyRuntimeBaselinePath>$(OpenHarmonyRuntimePackageRoot)\$(OpenHarmonyRuntimeAbi)\runtime-pack</OpenHarmonyRuntimeBaselinePath>
-		<OpenHarmonyRuntimePackPath Condition="'$(OpenHarmonyTarget)' == 'true' And Exists('$(OpenHarmonyRuntimeApiPath)')">$(OpenHarmonyRuntimeApiPath)</OpenHarmonyRuntimePackPath>
-		<OpenHarmonyRuntimePackPath Condition="'$(OpenHarmonyTarget)' == 'true' And !Exists('$(OpenHarmonyRuntimeApiPath)') And Exists('$(OpenHarmonyRuntimeBaselinePath)')">$(OpenHarmonyRuntimeBaselinePath)</OpenHarmonyRuntimePackPath>
+		<OpenHarmonyRuntimeManifestPath>$(OpenHarmonyRuntimePackageRoot)\manifest.json</OpenHarmonyRuntimeManifestPath>
+		<OpenHarmonyRuntimePackPath Condition="'$(OpenHarmonyTarget)' == 'true'">$(OpenHarmonyRuntimePackageRoot)\arm64-v8a\runtime-pack</OpenHarmonyRuntimePackPath>
 		<OpenHarmonyRuntimePackPath Condition="'$(OpenHarmonyTarget)' != 'true'">$(OpenHarmonyLegacyRuntimePackPath)</OpenHarmonyRuntimePackPath>
 		<IlcFrameworkNativePath>$(OpenHarmonyRuntimePackPath)\native\</IlcFrameworkNativePath>
 		<IlcSdkPath>$(OpenHarmonyRuntimePackPath)\sdk\</IlcSdkPath>
@@ -18,6 +16,7 @@
 	</ItemGroup>
 
 	<Target Name="ValidateOpenHarmonyArm64RuntimePackage" BeforeTargets="PrepareForBuild" Condition="'$(OpenHarmonyTarget)' == 'true'">
+		<Error Condition="!Exists('$(OpenHarmonyRuntimeManifestPath)')" Text="OpenHarmony runtime manifest was not found: '$(OpenHarmonyRuntimeManifestPath)'." />
 		<Error Condition="!Exists('$(OpenHarmonyRuntimePackPath)\sdk') Or !Exists('$(OpenHarmonyRuntimePackPath)\framework') Or !Exists('$(OpenHarmonyRuntimePackPath)\native')"
 			Text="OpenHarmony arm64 runtime package was not found for API $(OpenHarmonyApiLevel). Build releases/$(OpenHarmonyRuntimeVersion) with RuntimePackager first." />
 	</Target>

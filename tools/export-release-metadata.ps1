@@ -105,6 +105,9 @@ $checksumLines = @(
     "$(Get-Sha256 -Path $manifestPath)  manifest.json",
     "$(Get-Sha256 -Path $spdxPath)  sbom.spdx.json"
 )
+$checksumLines += Get-ChildItem -LiteralPath $GeneratedReleaseRoot -Filter '*.nupkg' -File |
+    Sort-Object Name |
+    ForEach-Object { "$(Get-Sha256 -Path $_.FullName)  $($_.Name)" }
 Write-Utf8NoBom -Path (Join-Path $MetadataRoot 'SHA256SUMS') -Content (($checksumLines -join "`n") + "`n")
 
 Write-Output "Exported $($manifest.version) $Channel metadata to '$MetadataRoot'."

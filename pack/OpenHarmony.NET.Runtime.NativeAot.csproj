@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+    <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+    <NoWarn>$(NoWarn);NU5100</NoWarn>
+    <Version Condition="'$(Version)' == ''">10.0.10-ohos.2-preview.1</Version>
+    <RuntimeAbi Condition="'$(RuntimeAbi)' == ''">x86_64</RuntimeAbi>
+    <PackageId>OpenHarmony.NET.Runtime.NativeAot.$(RuntimeAbi)</PackageId>
+    <Authors>OpenHarmony.NET</Authors>
+    <Description>OpenHarmony .NET 10 NativeAOT API13 baseline runtime for $(RuntimeAbi).</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <GeneratedReleaseRoot>$(MSBuildThisFileDirectory)..\releases\$(Version)</GeneratedReleaseRoot>
+    <RuntimePackRoot>$(GeneratedReleaseRoot)\$(RuntimeAbi)\runtime-pack</RuntimePackRoot>
+  </PropertyGroup>
+  <Target Name="ValidateRuntimePackageInputs" BeforeTargets="Pack">
+    <Error Condition="'$(RuntimeAbi)' != 'arm64-v8a' and '$(RuntimeAbi)' != 'x86_64'" Text="RuntimeAbi must be arm64-v8a or x86_64." />
+    <Error Condition="!Exists('$(GeneratedReleaseRoot)\manifest.json')" Text="Generated runtime manifest was not found." />
+    <Error Condition="!Exists('$(RuntimePackRoot)\sdk') or !Exists('$(RuntimePackRoot)\framework') or !Exists('$(RuntimePackRoot)\native')" Text="Generated runtime pack for $(RuntimeAbi) is incomplete." />
+  </Target>
+  <ItemGroup>
+    <None Include="$(RuntimePackRoot)\**" Pack="true" PackagePath="runtime-pack" />
+    <None Include="$(GeneratedReleaseRoot)\manifest.json" Pack="true" PackagePath="/" />
+    <None Include="..\buildTransitive\OpenHarmony.NET.Runtime.NativeAot.$(RuntimeAbi).targets" Pack="true" PackagePath="buildTransitive" />
+  </ItemGroup>
+</Project>

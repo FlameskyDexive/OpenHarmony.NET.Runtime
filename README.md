@@ -5,10 +5,10 @@
 
 ## 支持范围
 
-- 最低 API：15（HarmonyOS 5.0）
-- 已验证 API：15、18、20、23、26
+- 运行时基线 API：13
+- 支持 API：13-24、26（API25 明确不支持）
 - RID：`linux-musl-arm64`、`linux-musl-x64`
-- API15 是兼容基线；如果没有单独的 API 目录，API18/20/23/26 会使用 API15 包。
+- 两个 ABI 都使用经过 provenance 校验的 API13 基线 payload；manifest v2 为每个 API/ABI 显式记录 alias。
 
 ## 生成包
 
@@ -18,10 +18,10 @@
 dotnet run --project tools/RuntimePackager/RuntimePackager.csproj -- `
   --source-root D:\Engine\OHOS\runtime `
   --output-root . `
-  --version 10.0.10-ohos.1 `
+  --version 10.0.10-ohos.2-preview.1 `
   --runtime-commit <runtime-commit> `
   --bindings-commit <bindings-commit> `
-  --api-levels 15,18,20,23,26 `
+  --api-levels 13,14,15,16,17,18,19,20,21,22,23,24,26 `
   --architectures arm64,x64
 ```
 
@@ -36,13 +36,13 @@ dotnet run --project tools/RuntimePackager/RuntimePackager.csproj -- `
 <PropertyGroup>
   <RuntimeIdentifier>linux-musl-arm64</RuntimeIdentifier>
   <OpenHarmonyTarget>true</OpenHarmonyTarget>
-  <OpenHarmonyApiLevel>15</OpenHarmonyApiLevel>
+  <OpenHarmonyApiLevel>13</OpenHarmonyApiLevel>
 </PropertyGroup>
 <Import Project="path/to/OpenHarmony.NET.Runtime/runtime.targets" />
 ```
 
-模拟器将 RID 改为 `linux-musl-x64`，API18/20/23/26 只需调整
-`OpenHarmonyApiLevel`。targets 会优先使用对应 API 的独立包，缺失时回退到 API15 基线，并在包不存在时给出明确错误。
+模拟器将 RID 改为 `linux-musl-x64`。`OpenHarmonyApiLevel` 必须存在于 v2
+manifest 的显式映射中；OpenHarmony 构建不会回退到旧的 `9.0.0` 目录。
 
 ## 校验
 

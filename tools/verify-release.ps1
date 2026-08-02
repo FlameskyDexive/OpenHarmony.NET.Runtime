@@ -13,7 +13,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$expectedApis = @(15, 18, 20, 23, 26)
+$expectedApis = @(13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 26)
 $expectedArchitectures = @('arm64', 'x64')
 $expectedAbis = @('arm64-v8a', 'x86_64')
 
@@ -45,18 +45,18 @@ foreach ($path in @($manifestPath, $spdxPath, $sumsPath)) {
 }
 
 $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
-if ($manifest.schemaVersion -ne 1) { throw 'Runtime manifest schemaVersion must be 1.' }
-if ($manifest.version -ne '10.0.10-ohos.1') { throw "Unexpected runtime version: $($manifest.version)" }
-if ($manifest.minimumApi -ne 15) { throw "Runtime minimum API must be 15, found $($manifest.minimumApi)." }
+if ($manifest.schemaVersion -ne 2) { throw 'Runtime manifest schemaVersion must be 2.' }
+if ($manifest.version -ne '10.0.10-ohos.2-preview.1') { throw "Unexpected runtime version: $($manifest.version)" }
+if ($manifest.runtimeBaselineApi -ne 13) { throw "Runtime baseline API must be 13, found $($manifest.runtimeBaselineApi)." }
 if ($manifest.runtimeCommit -notmatch '^[0-9a-f]{40}$' -or $manifest.bindingsCommit -notmatch '^[0-9a-f]{40}$') {
     throw 'Runtime and bindings commits must be full lowercase Git SHA-1 values.'
 }
-Assert-EqualSequence -Actual @($manifest.verifiedApis) -Expected $expectedApis -Name 'verifiedApis'
+Assert-EqualSequence -Actual @($manifest.supportedApis) -Expected $expectedApis -Name 'supportedApis'
 Assert-EqualSequence -Actual @($manifest.architectures) -Expected $expectedArchitectures -Name 'architectures'
 Assert-EqualSequence -Actual @($manifest.packages | ForEach-Object { $_.abi } | Sort-Object) -Expected @($expectedAbis | Sort-Object) -Name 'package ABIs'
 
 foreach ($package in $manifest.packages) {
-    if ($package.apiLevel -ne 15) { throw "Package $($package.abi) is not built at the API15 baseline." }
+    if ($package.apiLevel -ne 13) { throw "Package $($package.abi) is not built at the API13 baseline." }
     if ($package.sdk.sha256 -notmatch '^[0-9a-f]{64}$') { throw "Invalid SDK hash for $($package.abi)." }
     $dependencies = @($package.dependencies)
     if (($dependencies | Select-Object -Unique).Count -ne $dependencies.Count) {
@@ -67,6 +67,14 @@ foreach ($package in $manifest.packages) {
     foreach ($file in $package.files) {
         if ($file.sha256 -notmatch '^[0-9a-f]{64}$') { throw "Invalid file hash for $($package.root)/$($file.path)." }
     }
+}
+
+if (@($manifest.compatibilityEntries).Count -ne 26) { throw 'Runtime manifest must contain 26 API/ABI compatibility entries.' }
+foreach ($entry in $manifest.compatibilityEntries) {
+    if ($entry.runtimeApi -ne 13 -or $entry.compatibilityKind -ne 'alias' -or $entry.sourceDirty) {
+        throw "Invalid API13 compatibility entry for API$($entry.buildApi)/$($entry.abi)."
+    }
+    if ($entry.provenanceSha256 -notmatch '^[0-9a-f]{64}$') { throw "Invalid provenance hash for API$($entry.buildApi)/$($entry.abi)." }
 }
 
 $spdx = Get-Content -LiteralPath $spdxPath -Raw | ConvertFrom-Json
@@ -102,6 +110,11 @@ if (-not [string]::IsNullOrWhiteSpace($GeneratedReleaseRoot)) {
             }
         }
     }
+    foreach ($nupkg in Get-ChildItem -LiteralPath $GeneratedReleaseRoot -Filter '*.nupkg' -File) {
+        if ($checksumEntries[$nupkg.Name] -ne (Get-Sha256 -Path $nupkg.FullName)) {
+            throw "SHA256SUMS mismatch for $($nupkg.Name)."
+        }
+    }
 }
 
-Write-Output "Verified $($manifest.version) $Channel release metadata for API15/18/20/23/26 and both ABIs."
+Write-Output "Verified $($manifest.version) $Channel release metadata for API13-24/26 and both ABIs."

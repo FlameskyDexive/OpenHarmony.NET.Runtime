@@ -12,20 +12,49 @@ public sealed record RuntimePackagerOptions(
     string BindingsCommit,
     IReadOnlyList<int> ApiLevels,
     string Configuration,
-    IReadOnlyList<string> Architectures);
+    IReadOnlyList<string> Architectures)
+{
+    public string? SdkCatalogPath { get; init; }
+}
 
 public sealed class RuntimeManifest
 {
-    [JsonPropertyName("schemaVersion")] public int SchemaVersion { get; init; } = 1;
+    [JsonPropertyName("schemaVersion")] public int SchemaVersion { get; init; } = 2;
     [JsonPropertyName("version")] public required string Version { get; init; }
     [JsonPropertyName("runtimeCommit")] public required string RuntimeCommit { get; init; }
     [JsonPropertyName("bindingsCommit")] public required string BindingsCommit { get; init; }
     [JsonPropertyName("minimumApi")] public required int MinimumApi { get; init; }
     [JsonPropertyName("verifiedApis")] public required IReadOnlyList<int> VerifiedApis { get; init; }
+    [JsonPropertyName("runtimeBaselineApi")] public required int RuntimeBaselineApi { get; init; }
+    [JsonPropertyName("supportedApis")] public required IReadOnlyList<int> SupportedApis { get; init; }
     [JsonPropertyName("architectures")] public required IReadOnlyList<string> Architectures { get; init; }
     [JsonPropertyName("toolVersions")] public required IReadOnlyDictionary<string, string> ToolVersions { get; init; }
     [JsonPropertyName("packages")] public required IReadOnlyList<RuntimePackageManifest> Packages { get; init; }
+    [JsonPropertyName("compatibilityEntries")] public required IReadOnlyList<RuntimeCompatibilityEntry> CompatibilityEntries { get; init; }
     [JsonPropertyName("sbom")] public required RuntimeSbomManifest Sbom { get; init; }
+
+    public RuntimeCompatibilityEntry Resolve(int buildApi, string abi)
+    {
+        if (!SupportedApis.Contains(buildApi))
+        {
+            throw new ArgumentOutOfRangeException(nameof(buildApi), buildApi, "Unsupported OpenHarmony build API.");
+        }
+
+        return CompatibilityEntries.SingleOrDefault(entry =>
+                   entry.BuildApi == buildApi && string.Equals(entry.Abi, abi, StringComparison.Ordinal))
+               ?? throw new ArgumentOutOfRangeException(nameof(abi), abi, "Unsupported OpenHarmony ABI.");
+    }
+}
+
+public sealed class RuntimeCompatibilityEntry
+{
+    [JsonPropertyName("buildApi")] public required int BuildApi { get; init; }
+    [JsonPropertyName("runtimeApi")] public required int RuntimeApi { get; init; }
+    [JsonPropertyName("abi")] public required string Abi { get; init; }
+    [JsonPropertyName("root")] public required string Root { get; init; }
+    [JsonPropertyName("compatibilityKind")] public required string CompatibilityKind { get; init; }
+    [JsonPropertyName("provenanceSha256")] public required string ProvenanceSha256 { get; init; }
+    [JsonPropertyName("sourceDirty")] public required bool SourceDirty { get; init; }
 }
 
 public sealed class RuntimePackageManifest
@@ -64,6 +93,7 @@ public sealed class RuntimeFileManifest
 
 public static class RuntimePackagerService
 {
+    private static readonly int[] SupportedApis = [13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 26];
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         WriteIndented = true,
@@ -80,14 +110,19 @@ public static class RuntimePackagerService
     public static RuntimeManifest Package(RuntimePackagerOptions options)
     {
         ValidateOptions(options);
-        var baselineApi = options.ApiLevels.Min();
+        var baselineApi = 13;
         var packages = new List<RuntimePackageManifest>();
+        var compatibilityEntries = new List<RuntimeCompatibilityEntry>();
         var releaseRoot = Path.Combine(options.OutputRoot, "releases", options.Version);
+        if (Directory.Exists(releaseRoot))
+        {
+            Directory.Delete(releaseRoot, recursive: true);
+        }
 
         foreach (var architecture in options.Architectures.OrderBy(value => value, StringComparer.Ordinal))
         {
             var (abi, rid) = ArchitectureMap[architecture];
-            var source = ResolveSource(options.SourceRoot, architecture, rid, options.Configuration);
+            var source = ResolveSource(options.SourceRoot, baselineApi, architecture, rid, options.Configuration);
             var packageRoot = Path.Combine(releaseRoot, abi, "runtime-pack");
             if (Directory.Exists(packageRoot))
             {
@@ -105,8 +140,9 @@ public static class RuntimePackagerService
                 File.Copy(source.Provenance, provenanceTarget, overwrite: true);
             }
 
-            var provenance = ReadProvenance(source.Provenance);
-            packages.Add(new RuntimePackageManifest
+            var provenance = ReadProvenance(source.Provenance, baselineApi);
+            ValidateSdkCatalog(options, provenance, baselineApi);
+            var package = new RuntimePackageManifest
             {
                 ApiLevel = baselineApi,
                 Architecture = architecture,
@@ -131,7 +167,22 @@ public static class RuntimePackagerService
                     .Select(file => file.Path)
                     .ToArray(),
                 Files = EnumerateFiles(packageRoot).ToArray()
-            });
+            };
+            packages.Add(package);
+
+            foreach (var buildApi in options.ApiLevels.OrderBy(value => value))
+            {
+                compatibilityEntries.Add(new RuntimeCompatibilityEntry
+                {
+                    BuildApi = buildApi,
+                    RuntimeApi = baselineApi,
+                    Abi = abi,
+                    Root = package.Root,
+                    CompatibilityKind = "alias",
+                    ProvenanceSha256 = ComputeFileHash(source.Provenance),
+                    SourceDirty = false
+                });
+            }
         }
 
         var toolVersions = new Dictionary<string, string>(StringComparer.Ordinal)
@@ -164,9 +215,15 @@ public static class RuntimePackagerService
             BindingsCommit = options.BindingsCommit,
             MinimumApi = baselineApi,
             VerifiedApis = options.ApiLevels.OrderBy(value => value).ToArray(),
+            RuntimeBaselineApi = baselineApi,
+            SupportedApis = options.ApiLevels.OrderBy(value => value).ToArray(),
             Architectures = options.Architectures.OrderBy(value => value, StringComparer.Ordinal).ToArray(),
             ToolVersions = toolVersions,
             Packages = packages,
+            CompatibilityEntries = compatibilityEntries
+                .OrderBy(entry => entry.BuildApi)
+                .ThenBy(entry => entry.Abi, StringComparer.Ordinal)
+                .ToArray(),
             Sbom = new RuntimeSbomManifest
             {
                 Format = "CycloneDX 1.5 JSON",
@@ -185,17 +242,18 @@ public static class RuntimePackagerService
         if (string.IsNullOrWhiteSpace(options.SourceRoot)) throw new ArgumentException("SourceRoot is required.");
         if (string.IsNullOrWhiteSpace(options.OutputRoot)) throw new ArgumentException("OutputRoot is required.");
         if (string.IsNullOrWhiteSpace(options.Version)) throw new ArgumentException("Version is required.");
-        if (options.ApiLevels.Count == 0 || options.ApiLevels.Any(api => api is not (15 or 18 or 20 or 23 or 26)))
-            throw new ArgumentException("API levels must be selected from 15, 18, 20, 23, and 26.");
+        if (!options.ApiLevels.OrderBy(api => api).SequenceEqual(SupportedApis))
+            throw new ArgumentException("API levels must be exactly 13 through 24, and 26.");
         if (options.Architectures.Count == 0 || options.Architectures.Any(api => !ArchitectureMap.ContainsKey(api)))
             throw new ArgumentException("Architectures must be selected from arm64 and x64.");
     }
 
-    private static SourceLayout ResolveSource(string sourceRoot, string architecture, string rid, string configuration)
+    private static SourceLayout ResolveSource(string sourceRoot, int apiLevel, string architecture, string rid, string configuration)
     {
         var root = Path.GetFullPath(sourceRoot);
         var candidates = new[]
         {
+            Path.Combine(root, $"api{apiLevel}", architecture, configuration),
             root,
             Path.Combine(root, "artifacts")
         };
@@ -208,7 +266,11 @@ public static class RuntimePackagerService
             var native = Path.Combine(runtime, "native");
             if (Directory.Exists(sdk) && Directory.Exists(framework) && Directory.Exists(native))
             {
-                return new SourceLayout(sdk, framework, native, Path.Combine(coreclr, "runtime-build-provenance.json"));
+                var matrixProvenance = Path.Combine(artifacts, "runtime-build-provenance.json");
+                var provenance = File.Exists(matrixProvenance)
+                    ? matrixProvenance
+                    : Path.Combine(coreclr, "runtime-build-provenance.json");
+                return new SourceLayout(sdk, framework, native, provenance);
             }
         }
 
@@ -242,13 +304,40 @@ public static class RuntimePackagerService
         }
     }
 
-    private static Dictionary<string, string> ReadProvenance(string path)
+    private static Dictionary<string, string> ReadProvenance(string path, int expectedBuildApi)
     {
-        if (!File.Exists(path)) return new Dictionary<string, string>(StringComparer.Ordinal);
+        if (!File.Exists(path)) throw new FileNotFoundException("Runtime build provenance is required.", path);
         using var document = JsonDocument.Parse(File.ReadAllText(path));
-        return document.RootElement.EnumerateObject()
+        var values = document.RootElement.EnumerateObject()
             .Where(property => property.Value.ValueKind is JsonValueKind.String or JsonValueKind.Number or JsonValueKind.True or JsonValueKind.False)
             .ToDictionary(property => property.Name, property => property.Value.ToString(), StringComparer.Ordinal);
+        if (!values.TryGetValue("sourceDirty", out var dirty) || !bool.TryParse(dirty, out var isDirty) || isDirty)
+            throw new InvalidDataException($"Runtime build provenance is dirty or incomplete: '{path}'.");
+        if (!values.TryGetValue("buildApi", out var buildApi) || buildApi != expectedBuildApi.ToString())
+            throw new InvalidDataException($"Runtime build provenance has buildApi '{buildApi}', expected {expectedBuildApi}: '{path}'.");
+        if (!values.TryGetValue("sdkManifestSha256", out var sdkHash) || sdkHash.Length != 64)
+            throw new InvalidDataException($"Runtime build provenance is missing sdkManifestSha256: '{path}'.");
+        return values;
+    }
+
+    private static void ValidateSdkCatalog(RuntimePackagerOptions options, IReadOnlyDictionary<string, string> provenance, int apiLevel)
+    {
+        var sourceRoot = Path.GetFullPath(options.SourceRoot);
+        var runtimeRoot = Directory.GetParent(Directory.GetParent(sourceRoot)?.FullName ?? string.Empty)?.FullName;
+        var catalogPath = options.SdkCatalogPath ??
+                          (runtimeRoot is null ? null : Path.Combine(runtimeRoot, "eng", "openharmony", "sdk-catalog.json"));
+        if (string.IsNullOrWhiteSpace(catalogPath) || !File.Exists(catalogPath))
+            throw new FileNotFoundException("OpenHarmony SDK catalog is required for runtime packaging.", catalogPath);
+
+        using var catalog = JsonDocument.Parse(File.ReadAllText(catalogPath));
+        var package = catalog.RootElement.GetProperty("packages").EnumerateArray()
+            .SingleOrDefault(item => item.GetProperty("apiLevel").GetInt32() == apiLevel);
+        if (package.ValueKind == JsonValueKind.Undefined)
+            throw new InvalidDataException($"SDK catalog has no package for API {apiLevel}.");
+        var expectedHash = package.GetProperty("manifestSha256").GetString();
+        if (!provenance.TryGetValue("sdkManifestSha256", out var actualHash) ||
+            !string.Equals(expectedHash, actualHash, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidDataException($"Runtime provenance SDK manifest hash does not match catalog API {apiLevel}.");
     }
 
     private static string ComputeDirectoryHash(string root)
@@ -313,6 +402,9 @@ internal static class Program
             values.GetValueOrDefault("bindings-commit", "unknown"),
             apiLevels,
             values.GetValueOrDefault("configuration", "Release"),
-            architectures);
+            architectures)
+        {
+            SdkCatalogPath = values.GetValueOrDefault("sdk-catalog")
+        };
     }
 }
