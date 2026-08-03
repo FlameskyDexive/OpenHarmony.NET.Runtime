@@ -3,22 +3,29 @@ name: .NET 10 OpenHarmony runtime release
 on:
   push:
     branches: [main, openharmony/dotnet10-api26]
+    tags:
+      - 'v*-ohos.*-preview.*'
+      - 'v*-ohos.*-rc.*'
   pull_request:
+  schedule:
+    - cron: '31 18 * * *'
   workflow_dispatch:
     inputs:
+      tier:
+        description: Runtime release tier to execute
+        required: true
+        type: choice
+        default: pr
+        options: [pr, nightly, release]
       release_channel:
-        description: API26 Beta may only use preview or rc
+        description: API26 Beta permits preview or rc only
         required: true
         type: choice
         default: preview
-        options: [preview, rc, stable]
-      arm64_device_evidence_sha256:
-        description: SHA-256 of the arm64 physical-device acceptance log
-        required: true
-        type: string
-      x86_64_emulator_evidence_sha256:
-        description: SHA-256 of the x86_64 emulator acceptance log
-        required: true
+        options: [preview, rc]
+      release_evidence_sha256:
+        description: SHA-256 of the canonical device-complete release evidence aggregate
+        required: false
         type: string
 
 permissions:
@@ -26,11 +33,16 @@ permissions:
 
 env:
   DOTNET_VERSION: '10.0.x'
-  RUNTIME_VERSION: '10.0.10-ohos.1'
+  RUNTIME_VERSION: '10.0.10-ohos.2-preview.1'
+  SUPPORTED_APIS: '13,14,15,16,17,18,19,20,21,22,23,24,26'
 
 jobs:
-  tests-and-metadata:
-    name: Packager tests and tracked metadata
+  pr-contracts:
+    name: PR packager and metadata contracts
+    if: >-
+      github.event_name == 'pull_request' ||
+      (github.event_name == 'push' && !startsWith(github.ref, 'refs/tags/')) ||
+      (github.event_name == 'workflow_dispatch' && inputs.tier == 'pr')
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -45,7 +57,7 @@ jobs:
       - name: Verify preview metadata
         shell: pwsh
         run: ./tools/verify-release.ps1 -MetadataRoot "release/$env:RUNTIME_VERSION" -Channel preview -Api26ReleaseType Beta
-      - name: Prove that API26 Beta blocks stable release
+      - name: Prove API26 Beta rejects stable publication
         shell: pwsh
         run: |
           try {
@@ -59,58 +71,129 @@ jobs:
         shell: pwsh
         run: |
           git diff --check
-          if ((git status --porcelain)) { throw 'Tests changed tracked files.' }
+          if (git status --porcelain --untracked-files=no) { throw 'Verification changed tracked files.' }
 
-  package:
-    name: Rebuild and verify both runtime packs
-    needs: tests-and-metadata
+  package-and-verify:
+    name: Nightly 13-24/26 dual-ABI package verification
+    if: >-
+      github.event_name == 'schedule' ||
+      startsWith(github.ref, 'refs/tags/') ||
+      (github.event_name == 'workflow_dispatch' && contains(fromJSON('["nightly","release"]'), inputs.tier))
     runs-on: [self-hosted, Windows, harmonyos-sdk, runtime-artifacts]
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
-      - name: Package arm64-v8a and x86_64
+      - name: Resolve preview or RC channel
+        shell: pwsh
+        env:
+          REQUESTED_CHANNEL: ${{ inputs.release_channel }}
+        run: |
+          $channel = if ($env:GITHUB_REF -match '-rc\.') {
+            'rc'
+          }
+          elseif ($env:GITHUB_REF -match '-preview\.') {
+            'preview'
+          }
+          elseif ($env:REQUESTED_CHANNEL) {
+            $env:REQUESTED_CHANNEL
+          }
+          else {
+            'preview'
+          }
+          "RELEASE_CHANNEL=$channel" >> $env:GITHUB_ENV
+      - name: Rebuild both runtime packs from accepted provenance
         shell: pwsh
         run: |
           $sourceRoot = $env:OPENHARMONY_RUNTIME_SOURCE_ROOT
-          if (-not $sourceRoot -or -not (Test-Path -LiteralPath $sourceRoot)) { throw 'OPENHARMONY_RUNTIME_SOURCE_ROOT must point to verified runtime build artifacts.' }
+          if (-not $sourceRoot -or -not (Test-Path -LiteralPath $sourceRoot)) {
+            throw 'OPENHARMONY_RUNTIME_SOURCE_ROOT must point to verified runtime build artifacts.'
+          }
           $tracked = Get-Content "release/$env:RUNTIME_VERSION/manifest.json" -Raw | ConvertFrom-Json
+          $sourceCommit = (git -C $sourceRoot rev-parse HEAD).Trim()
+          if ($sourceCommit -cne $tracked.runtimeCommit) {
+            throw "Runtime source commit $sourceCommit does not match accepted commit $($tracked.runtimeCommit)."
+          }
+          if (git -C $sourceRoot status --porcelain --untracked-files=no) {
+            throw 'Runtime source contains tracked modifications.'
+          }
           $outputRoot = Join-Path $env:RUNNER_TEMP 'openharmony-runtime-release'
-          dotnet run --project tools/RuntimePackager/RuntimePackager.csproj --configuration Release -- --source-root "$sourceRoot" --output-root "$outputRoot" --version $env:RUNTIME_VERSION --runtime-commit $tracked.runtimeCommit --bindings-commit $tracked.bindingsCommit --api-levels 15,18,20,23,26 --architectures arm64,x64
+          dotnet run --project tools/RuntimePackager/RuntimePackager.csproj --configuration Release -- `
+            --source-root $sourceRoot `
+            --output-root $outputRoot `
+            --version $env:RUNTIME_VERSION `
+            --runtime-commit $tracked.runtimeCommit `
+            --bindings-commit $tracked.bindingsCommit `
+            --api-levels $env:SUPPORTED_APIS `
+            --architectures arm64,x64
           if ($LASTEXITCODE -ne 0) { throw 'RuntimePackager failed.' }
           $generatedRoot = Join-Path $outputRoot "releases/$env:RUNTIME_VERSION"
-          ./tools/verify-release.ps1 -MetadataRoot "release/$env:RUNTIME_VERSION" -GeneratedReleaseRoot $generatedRoot -Channel preview -Api26ReleaseType Beta
+          ./tools/verify-release.ps1 `
+            -MetadataRoot "release/$env:RUNTIME_VERSION" `
+            -GeneratedReleaseRoot $generatedRoot `
+            -Channel $env:RELEASE_CHANNEL `
+            -Api26ReleaseType Beta
           "GENERATED_RELEASE_ROOT=$generatedRoot" >> $env:GITHUB_ENV
+      - name: Record immutable package summary
+        shell: pwsh
+        run: |
+          $manifestPath = Join-Path $env:GENERATED_RELEASE_ROOT 'manifest.json'
+          $manifestSha = (Get-FileHash -LiteralPath $manifestPath -Algorithm SHA256).Hash.ToLowerInvariant()
+          "## $env:RUNTIME_VERSION $env:RELEASE_CHANNEL package" >> $env:GITHUB_STEP_SUMMARY
+          "Runtime manifest SHA-256: ``$manifestSha``" >> $env:GITHUB_STEP_SUMMARY
+          "Compatibility rows: 26 (API13-24/26 x both ABIs)" >> $env:GITHUB_STEP_SUMMARY
       - uses: actions/upload-artifact@v4
         with:
-          name: OpenHarmony.NET.Runtime-${{ env.RUNTIME_VERSION }}-preview
+          name: runtime-generated-release
           path: ${{ runner.temp }}/openharmony-runtime-release/releases/${{ env.RUNTIME_VERSION }}
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: runtime-tracked-metadata
+          path: release/${{ env.RUNTIME_VERSION }}
+          if-no-files-found: error
 
-  release-policy:
-    name: Device and SDK release gates
-    if: github.event_name == 'workflow_dispatch'
-    needs: package
+  release-gate:
+    name: Preview/RC package and device-evidence gate
+    needs: package-and-verify
+    if: >-
+      always() && needs.package-and-verify.result == 'success' &&
+      (startsWith(github.ref, 'refs/tags/') ||
+       (github.event_name == 'workflow_dispatch' && inputs.tier == 'release'))
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Require both runtime evidence digests
+      - uses: actions/download-artifact@v4
+        with:
+          name: runtime-generated-release
+          path: generated-release/${{ env.RUNTIME_VERSION }}
+      - name: Resolve preview or RC channel
         shell: pwsh
         env:
-          ARM64_EVIDENCE: ${{ inputs.arm64_device_evidence_sha256 }}
-          X64_EVIDENCE: ${{ inputs.x86_64_emulator_evidence_sha256 }}
-          RELEASE_CHANNEL: ${{ inputs.release_channel }}
+          REQUESTED_CHANNEL: ${{ inputs.release_channel }}
         run: |
-          if ($env:ARM64_EVIDENCE -notmatch '^[0-9a-fA-F]{64}$') { throw 'arm64 physical-device evidence SHA-256 is required.' }
-          if ($env:X64_EVIDENCE -notmatch '^[0-9a-fA-F]{64}$') { throw 'x86_64 emulator evidence SHA-256 is required.' }
-          ./tools/verify-release.ps1 -MetadataRoot "release/$env:RUNTIME_VERSION" -Channel $env:RELEASE_CHANNEL -Api26ReleaseType Beta
-      - name: Record release gate summary
+          $channel = if ($env:GITHUB_REF -match '-rc\.') { 'rc' } elseif ($env:REQUESTED_CHANNEL) { $env:REQUESTED_CHANNEL } else { 'preview' }
+          "RELEASE_CHANNEL=$channel" >> $env:GITHUB_ENV
+      - name: Require canonical device-complete evidence
         shell: pwsh
         env:
-          ARM64_EVIDENCE: ${{ inputs.arm64_device_evidence_sha256 }}
-          X64_EVIDENCE: ${{ inputs.x86_64_emulator_evidence_sha256 }}
-          RELEASE_CHANNEL: ${{ inputs.release_channel }}
+          RELEASE_EVIDENCE_SHA256: ${{ inputs.release_evidence_sha256 || vars.OPENHARMONY_RELEASE_EVIDENCE_SHA256 }}
         run: |
-          "## $env:RUNTIME_VERSION $env:RELEASE_CHANNEL gate" >> $env:GITHUB_STEP_SUMMARY
-          "arm64 device evidence: ``$env:ARM64_EVIDENCE``" >> $env:GITHUB_STEP_SUMMARY
-          "x86_64 emulator evidence: ``$env:X64_EVIDENCE``" >> $env:GITHUB_STEP_SUMMARY
+          if ($env:RELEASE_EVIDENCE_SHA256 -notmatch '^[0-9a-fA-F]{64}$') {
+            throw 'A canonical device-complete release evidence SHA-256 is required.'
+          }
+          $generatedRoot = "generated-release/$env:RUNTIME_VERSION"
+          ./tools/verify-release.ps1 `
+            -MetadataRoot "release/$env:RUNTIME_VERSION" `
+            -GeneratedReleaseRoot $generatedRoot `
+            -Channel $env:RELEASE_CHANNEL `
+            -Api26ReleaseType Beta
+          $manifestPath = Join-Path $generatedRoot 'manifest.json'
+          $manifestSha = (Get-FileHash -LiteralPath $manifestPath -Algorithm SHA256).Hash.ToLowerInvariant()
+          "## $env:RUNTIME_VERSION $env:RELEASE_CHANNEL publication gate" >> $env:GITHUB_STEP_SUMMARY
+          "Runtime manifest SHA-256: ``$manifestSha``" >> $env:GITHUB_STEP_SUMMARY
+          "Canonical release evidence SHA-256: ``$($env:RELEASE_EVIDENCE_SHA256.ToLowerInvariant())``" >> $env:GITHUB_STEP_SUMMARY
+          "Package, SPDX SBOM, checksums, 26 compatibility rows, and current device evidence are required." >> $env:GITHUB_STEP_SUMMARY
