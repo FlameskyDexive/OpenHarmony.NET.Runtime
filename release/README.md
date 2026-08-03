@@ -16,6 +16,48 @@ Release quality and the manifest is regenerated. Publishing also requires
 fresh arm64 physical-device and x86_64 emulator evidence from the sample HAP
 workflow; a host-only build is not release evidence.
 
+Before publishing, an independent XEngine-style consumer must restore only the
+immutable package IDs below from a temporary feed (plus their public NuGet
+dependencies), with an isolated package cache and no project/source reference:
+
+- `OpenHarmony.NET.Runtime.NativeAot.x86_64/10.0.10-ohos.2-preview.1`
+- `OpenHarmony.NET.Runtime.NativeAot.arm64-v8a/10.0.10-ohos.2-preview.1`
+- `OpenHarmony.NET.PublishAotCross/42.42.42-dev`
+
+The clean consumer gate publishes API13 and API26 for x86_64 and arm64-v8a,
+verifies the `x86_64-linux-ohos` and `aarch64-linux-ohos` ELF machines, and scans
+the generated assets, NuGet props/targets, and binlogs for runtime source or local
+`releases/` paths. Identical API13/API26 ELF hashes are expected when both APIs
+resolve the manifest's API13 baseline alias.
+
+Run the gate against the generated release directory and an immutable
+PublishAotCross package. The runtime directory must directly contain these two
+package files; the third input must be exactly
+`OpenHarmony.NET.PublishAotCross.42.42.42-dev.nupkg`:
+
+```powershell
+../OpenHarmony.Blazor.Hybrid/tests/XEngine.ConsumerFixture/run-clean-consumer.ps1 `
+  -RuntimePackageDirectory ./releases/10.0.10-ohos.2-preview.1 `
+  -RuntimePackageChecksumsPath ./release/10.0.10-ohos.2-preview.1/SHA256SUMS `
+  -PublishAotCrossPackagePath <path-to>/OpenHarmony.NET.PublishAotCross.42.42.42-dev.nupkg `
+  -PublishAotCrossPackageSha256 <published-sha256> `
+  -SdkRoot $env:LOCALAPPDATA\OpenHarmony\Sdk
+```
+
+The runner verifies the cross-compiler package against its published SHA-256 and
+each runtime package against the release `SHA256SUMS`, then creates a throwaway
+feed containing only those three `.nupkg` files, uses isolated `NUGET_PACKAGES`
+and `DOTNET_CLI_HOME`, and allows nuget.org only for transitive dependencies. It
+rejects `ProjectReference` and local runtime imports before restore, records the
+resolved `OpenHarmonyTargetTriple` from the restored package targets, verifies
+the corresponding `--target=` linker argument in the publish binlog, scans
+generated assets/props/targets/binlogs for
+`D:\Engine\OHOS\runtime` and any local `OpenHarmony.NET.Runtime\releases` path,
+and writes normalized `clean-consumer-evidence.json`. Successful runs remove the
+temporary work directory; failed runs retain it for investigation. This is a
+host-side package-consumer gate, not substitute evidence for required device
+acceptance.
+
 Regenerate and verify metadata:
 
 ```powershell
